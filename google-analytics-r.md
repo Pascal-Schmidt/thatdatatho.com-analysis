@@ -5,64 +5,11 @@ February 4, 2020
 
 ``` r
 library(tidyverse)
-```
-
-    ## -- Attaching packages --------------------------------------- tidyverse 1.3.0 --
-
-    ## v ggplot2 3.2.1     v purrr   0.3.3
-    ## v tibble  2.1.3     v dplyr   0.8.3
-    ## v tidyr   1.0.0     v stringr 1.4.0
-    ## v readr   1.3.1     v forcats 0.4.0
-
-    ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
-    ## x dplyr::filter() masks stats::filter()
-    ## x dplyr::lag()    masks stats::lag()
-
-``` r
 library(tidytext)
 library(igraph)
-```
-
-    ## 
-    ## Attaching package: 'igraph'
-
-    ## The following objects are masked from 'package:dplyr':
-    ## 
-    ##     as_data_frame, groups, union
-
-    ## The following objects are masked from 'package:purrr':
-    ## 
-    ##     compose, simplify
-
-    ## The following object is masked from 'package:tidyr':
-    ## 
-    ##     crossing
-
-    ## The following object is masked from 'package:tibble':
-    ## 
-    ##     as_data_frame
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     decompose, spectrum
-
-    ## The following object is masked from 'package:base':
-    ## 
-    ##     union
-
-``` r
 library(ggraph)
-```
-
-    ## Warning: package 'ggraph' was built under R version 3.6.2
-
-``` r
 library(wordcloud)
 ```
-
-    ## Warning: package 'wordcloud' was built under R version 3.6.2
-
-    ## Loading required package: RColorBrewer
 
 ``` r
 # Ran last on February 4th, 2020
@@ -136,13 +83,12 @@ ggplot(total_views, aes(x = date, y = total_views)) +
   ylab("Page Views")
 ```
 
-    ## Warning: Removed 581 rows containing missing values (geom_text).
-
 ![](google-analytics-r_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
   - I have been blogging since January 2018 and we can see my blog has
     been growing since then. As of February 2020, I am averaging around
     4,000 page views per month.
+  - Also, in December 2019, I reached my highest page views so far with
 
 ### What Blog Posts generate the most Traffic?
 

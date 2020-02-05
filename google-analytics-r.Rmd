@@ -5,7 +5,7 @@ date: "February 4, 2020"
 output: github_document
 ---
 
-```{r}
+```{r message = F, warning = F}
 library(tidyverse)
 library(tidytext)
 library(igraph)
@@ -40,7 +40,7 @@ web_data %>%
 
 ### Blog Development Over Time
 
-```{r}
+```{r message = F, warning = F}
 web_data %>%
   dplyr::group_by(date) %>%
   dplyr::summarise(total_views = sum(pageviews)) %>%
@@ -65,6 +65,7 @@ ggplot(total_views, aes(x = date, y = total_views)) +
 ```
 
 - I have been blogging since January 2018 and we can see my blog has been growing since then. As of February 2020, I am averaging around 4,000 page views per month. 
+- Also, in December 2019, I reached my highest page views so far with 
 
 ### What Blog Posts generate the most Traffic?
 
