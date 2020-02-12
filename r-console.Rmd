@@ -1,0 +1,186 @@
+---
+title: "Untitled"
+author: "Pascal Schmidt"
+date: "February 5, 2020"
+output: html_document
+---
+
+In the last blog post, we investigated my website with the data from Google Analytics. Today, we will be using the Google's search console to pull data into R and then analyze it.
+
+Below is the set up to pull the data into R. I also provided the data set on my GitHub if you want to do reproduce my analysis or look at other variables that interest you. Let's get started. 
+
+```{r}
+library(googleAuthR)
+library(searchConsoleR)
+library(tidyverse)
+library(countrycode)
+library(tidytext)
+library(igraph)
+library(ggraph)
+library(wordcloud)
+```
+
+```{r}
+# scr_auth()
+```
+
+```{r}
+# sc_websites <- list_websites()
+# sc_websites
+```
+
+```{r}
+# searchConsoleR::search_analytics(sc_websites$siteUrl,
+#                                  start = "2018-01-15", end = Sys.Date(),
+#                                  dimensions = c("page", "query", "country", "date"),
+#                                  rowLimit = 100000) -> web_data
+# 
+# web_data %>%
+#   dplyr::as_tibble() -> web_data
+# 
+# write.csv(web_data, "data/search_console.csv")
+```
+
+```{r}
+web_data <- readr::read_csv("data/search_console.csv")
+
+web_data %>%
+  dplyr::mutate(continent = countrycode::countrycode(sourcevar = web_data$countryName,
+                                                     origin = "country.name",                                                                                   destination = "continent")) -> web_data
+```
+
+```{r}
+web_data %>%
+  dplyr::mutate(date_month = lubridate::floor_date(date, "month")) %>%
+  dplyr::group_by(date_month, continent) %>%
+  dplyr::summarise(avg_pos = mean(position, na.rm = T)) %>%
+  dplyr::filter(!(is.na(continent))) %>%
+  ggplot(aes(x = date_month, y = avg_pos, col = continent)) +
+  geom_line() +
+  geom_point() + 
+  ylab("Average SEO Position Per Month") +
+  xlab("Date") +
+  ggtitle("Average SEO Positions for Different Continents") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom") +
+  scale_y_continuous(limits = c(0, 85))
+```
+
+```{r}
+# download_dimensions <- c('date', 'query')
+# type <- c('web')
+# 
+# searchConsoleR::search_analytics(sc_websites$siteUrl,
+#                                  start = "2018-01-15", end = Sys.Date(),
+#                                  dimensions = download_dimensions,
+#                                  rowLimit = 100000,
+#                                  searchType = type) -> web_data_2
+# 
+# write.csv(web_data_2, "data/web_data_2.csv")
+```
+
+```{r}
+web_data_2 <- readr::read_csv("data/web_data_2.csv")
+
+web_data_2 %>%
+  dplyr::as_tibble() -> web_data_2
+
+web_data_2 %>%
+  dplyr::mutate(date_month = lubridate::floor_date(date, "month")) %>%
+  dplyr::group_by(date_month, query) %>%
+  dplyr::summarise(avg_pos = mean(position)) %>%
+  dplyr::filter(avg_pos <= 10 & date_month >= "2020-01-01") %>%
+  dplyr::rename(Date = date_month, Query = query, `Average Position` = avg_pos) %>%
+  knitr::kable(digits = 0, caption = "First Page Google Articles for Certain Queries")
+```
+
+```{r}
+web_data_2 %>%
+  dplyr::mutate(date_month = lubridate::floor_date(date, "month")) %>%
+  dplyr::filter(impressions >= 5) %>%
+  dplyr::filter(ctr != 0) %>%
+  ggplot(aes(x = ctr)) +
+  geom_histogram(binwidth = 0.02) +
+  xlab("CTR") +
+  ylab("Count") +
+  ggtitle("Histogram of Click Through Rate for thatdatatho.com") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+# install.packages("corrplot")
+library(corrplot)
+
+# COMPUTE
+corr_results <- web_data_2 %>%
+  dplyr::filter(impressions > 5) %>%
+  dplyr::select(clicks:position) %>% 
+  cor()
+
+# PLOT CORRELOGRAM
+corrplot(corr_results, method = 'color',
+         type = 'upper', addCoef.col = 'black',
+         tl.col = 'black', tl.srt = 45,
+         diag = FALSE)
+```
+
+```{r}
+# CREATE VARIABLE
+avg_ctr <- web_data_2 %>%
+  dplyr::group_by(query) %>%
+  dplyr::filter(impressions > 5) %>%
+  dplyr::summarize(clicks = sum(clicks),
+                   impressions = sum(impressions),
+                   position = median(position)) %>%
+  dplyr::mutate(page_group = 1 * (position %/% 1)) %>% # CREATE NEW COLUMN TO GROUP AVG POSITIONS
+  dplyr::filter(position < 21) %>%         # FILTER ONLY FIRST 2 PAGES
+  dplyr::mutate(ctr =  100*(clicks / impressions)) %>%     # NORMALIZE TO 100%
+  dplyr::ungroup()
+
+# PLOT OUR RESULTS
+avg_ctr %>%
+  ggplot() +
+  geom_boxplot(aes(page_group, ctr, group = page_group)) +
+  labs(x = "SERP Position",
+       y = "Click-through Rate (%)") +
+  theme_minimal() 
+```
+
+
+```{r fig.width = 10, fig.height = 10}
+pal2 <- brewer.pal(8, "Dark2")
+
+png("wordcloud_packages.png", width = 1280,height=800)
+web_data %>%
+  dplyr::count(query) %>%
+  with(wordcloud::wordcloud(query, n, max.words = 100, 
+                            colors = pal2,  rot.per = .15))
+
+dev.off()
+```
+
+```{r}
+web_data %>%
+  dplyr::select(query) %>%
+  dplyr::distinct() %>%
+  tidytext::unnest_tokens(bigram, query, token = "ngrams", n = 2) -> bigram
+
+bigram %>%
+  tidyr::separate(bigram, c("word_1", "word_2")) %>%
+  dplyr::count(word_1, word_2, sort = TRUE) -> bigram_counts
+
+bigram_counts %>%
+  dplyr::filter(n > 20) %>%
+  igraph::graph_from_data_frame() -> bigram_graph
+
+a <- grid::arrow(type = "closed", length = unit(0.15, "inches"))
+ggraph::ggraph(bigram_graph, layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n), show.legend = F,
+                 arrow = a, end_cap = circle(0.07, "inches")) +
+  geom_node_point(color = "lightblue", size = 3) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void()
+```
+
