@@ -208,16 +208,30 @@ key_words %>%
 ![](google-analytics-r_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ``` r
-key_words %>%
-  dplyr::mutate(word = stringr::str_remove_all(word, "[[0-9]]")) %>%
-  dplyr::count(word) %>%
+web_data %>%
+  dplyr::select(keyword) %>%
+  dplyr::filter(!(keyword %in% c("(not set)", "(not provided)"))) %>%
+  tidytext::unnest_tokens(bigram, keyword, token = "ngrams", n = 2) -> bigram
+
+bigram %>%
+  tidyr::separate(bigram, c("word_1", "word_2")) %>%
+  dplyr::count(word_1, word_2, sort = TRUE) -> bigram_counts
+```
+
+    ## Warning: Expected 2 pieces. Additional pieces discarded in 45 rows [170, 171,
+    ## 311, 312, 313, 611, 612, 682, 683, 768, 769, 853, 854, 862, 863, 871, 872, 880,
+    ## 881, 990, ...].
+
+``` r
+bigram_counts %>%
   dplyr::filter(n > 10) %>%
-  igraph::graph_from_data_frame() -> bigram
+  igraph::graph_from_data_frame() -> bigram_graph
 
 a <- grid::arrow(type = "closed", length = unit(0.15, "inches"))
-ggraph(bigram, layout = "fr") +
-  geom_edge_link() +
-  geom_node_point() +
+ggraph::ggraph(bigram_graph, layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n), show.legend = F,
+                 arrow = a, end_cap = circle(0.07, "inches")) +
+  geom_node_point(color = "lightblue", size = 3) +
   geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
   theme_void()
 ```
